@@ -415,48 +415,43 @@
 
 // ################################# VARIANT_PWM SETTINGS ##############################
 #ifdef VARIANT_PWM
-/* ###### CONTROL VIA ESP32 PWM OUTPUT ######
- * Connect ESP32 GPIO outputs directly to the control inputs of the device.
- * Assume GPIO13 (PA2) is connected for speed and GPIO12 (PA3) for steering.
- */
-  // Uncomment this to use Dual-inputs configuration
-  // #define DUAL_INPUTS                     
+/* ###### CONTROL VIA RC REMOTE ######
+ * Right sensor board cable. Connect PA2 to channel 1 and PA3 to channel 2 on receiver.
+ * Channel 1: steering, Channel 2: speed.
+*/
+  // #define DUAL_INPUTS                     // ADC*(Primary) + PWM(Auxiliary). Uncomment this to use Dual-inputs
   #ifdef DUAL_INPUTS
-    #define FLASH_WRITE_KEY       0x1105  // Flash memory writing key to use specific calibration settings from flash
-    #define CONTROL_ADC           0       // Use ADC as primary input. Disable related serial communications.
-    #define CONTROL_PWM_RIGHT     1       // Use PWM input on the RIGHT cable for secondary control. Disable debug on USART3.
-    #define PRI_INPUT1            3,     0, 0, 4095, 100  // TYPE, MIN, MID, MAX, DEADBAND. Config for primary input
-    #define PRI_INPUT2            3,     0, 0, 4095, 100  // TYPE, MIN, MID, MAX, DEADBAND. Config for secondary input
-    #define AUX_INPUT1            3, -1000, 0, 1000, 100  // TYPE, MIN, MID, MAX, DEADBAND. Config for auxiliary input 1
-    #define AUX_INPUT2            3, -1000, 0, 1000, 100  // TYPE, MIN, MID, MAX, DEADBAND. Config for auxiliary input 2
+   //#define FLASH_WRITE_KEY       0x1105  // Flash memory writing key. Change this key to ignore the input calibrations from the flash memory and use the ones in config.h
+   //#define CONTROL_ADC           0       // use ADC as input. Number indicates priority for dual-input. Disable CONTROL_SERIAL_USART2, FEEDBACK_SERIAL_USART2, DEBUG_SERIAL_USART2!
+    //#define CONTROL_PWM_RIGHT     1       // use RC PWM as input on the RIGHT cable. Number indicates priority for dual-input. Disable DEBUG_SERIAL_USART3!
+    //#define PRI_INPUT1            3,     0, 0, 4095,   0  // TYPE, MIN, MID, MAX, DEADBAND. See INPUT FORMAT section
+   //#define PRI_INPUT2            3,     0, 0, 4095,   0  // TYPE, MIN, MID, MAX, DEADBAND. See INPUT FORMAT section
+    //#define AUX_INPUT1            3, -1000, 0, 1000, 100  // TYPE, MIN, MID, MAX, DEADBAND. See INPUT FORMAT section
+    //#define AUX_INPUT2            3, -1000, 0, 1000, 100  // TYPE, MIN, MID, MAX, DEADBAND. See INPUT FORMAT section
   #else
-    #define FLASH_WRITE_KEY       0x1005  // Flash memory writing key to ignore input calibrations from flash
-    #define CONTROL_PWM_RIGHT     0       // Use PWM input on the RIGHT cable for primary control. Disable debug on USART3.
-    #define CONTROL_PWM_LEFT      0       // Optionally, use PWM input on the LEFT cable. Disable debug on USART2.
-    #define PRI_INPUT1            2, -1000, 0, 1000, 100  // TYPE, MIN, MID, MAX, DEADBAND. Config for right PWM input
-    #define PRI_INPUT2            2, -1000, 0, 1000, 100  // TYPE, MIN, MID, MAX, DEADBAND. Config for left PWM input
+    #define FLASH_WRITE_KEY       0x1005  // Flash memory writing key. Change this key to ignore the input calibrations from the flash memory and use the ones in config.h
+    #define CONTROL_PWM_LEFT      0       // use RC PWM as input on the LEFT cable. Number indicates priority for dual-input. Disable DEBUG_SERIAL_USART2!
+    #define CONTROL_PWM_RIGHT     0       // use RC PWM as input on the RIGHT cable. Number indicates priority for dual-input. Disable DEBUG_SERIAL_USART3!
+    #define PRI_INPUT1            2, -1000, 0, 1000, 100  // TYPE, MIN, MID, MAX, DEADBAND. See INPUT FORMAT section
+    #define PRI_INPUT2            2, -1000, 0, 1000, 100  // TYPE, MIN, MID, MAX, DEADBAND. See INPUT FORMAT section
   #endif
 
-  #define FILTER                  6553    // 0.1f [-] Fixed point format, lower value == softer filter
-  #define SPEED_COEFFICIENT       16384   // 1.0f [-] Fixed point format, higher value == stronger speed control
-  #define STEER_COEFFICIENT       16384   // 1.0f [-] Fixed point format, higher value == stronger steering control
+  #define FILTER                  6553    // 0.1f [-] fixdt(0,16,16) lower value == softer filter [0, 65535] = [0.0 - 1.0].
+  #define SPEED_COEFFICIENT       16384   // 1.0f [-] fixdt(1,16,14) higher value == stronger. [0, 65535] = [-2.0 - 2.0]. In this case 16384 = 1.0 * 2^14
+  #define STEER_COEFFICIENT       16384   // 1.0f [-] fixdt(1,16,14) higher value == stronger. [0, 65535] = [-2.0 - 2.0]. In this case 16384 = 1.0 * 2^14. If you do not want any steering, set it to 0.
+  // #define TANK_STEERING                   // use for tank steering, each input controls each wheel 
+  // #define INVERT_R_DIRECTION
+  // #define INVERT_L_DIRECTION
+  // #define SUPPORT_BUTTONS_LEFT            // use left sensor board cable for button inputs.  Disable DEBUG_SERIAL_USART2!
+  // #define SUPPORT_BUTTONS_RIGHT           // use right sensor board cable for button inputs. Disable DEBUG_SERIAL_USART3!
 
-  // Optional configuration flags
-  // #define TANK_STEERING                 // Uncomment for tank steering mode, where each input controls one wheel
-  // #define INVERT_R_DIRECTION            // Uncomment to invert the direction of the right motor
-  // #define INVERT_L_DIRECTION            // Uncomment to invert the direction of the left motor
-  // #define SUPPORT_BUTTONS_LEFT          // Uncomment to enable button inputs on the left sensor board cable
-  // #define SUPPORT_BUTTONS_RIGHT         // Uncomment to enable button inputs on the right sensor board cable
-
-  // Debugging settings
   #if defined(CONTROL_PWM_RIGHT) && !defined(DUAL_INPUTS)
-    #define DEBUG_SERIAL_USART2           // Enable debugging on the left sensor cable
+    #define DEBUG_SERIAL_USART2           // left sensor cable debug
   #elif defined(CONTROL_PWM_LEFT) && !defined(DUAL_INPUTS)
-    #define DEBUG_SERIAL_USART3           // Enable debugging on the right sensor cable
+    #define DEBUG_SERIAL_USART3           // right sensor cable debug
   #endif
 #endif
 // ############################# END OF VARIANT_PWM SETTINGS ############################
-
 
 
 
